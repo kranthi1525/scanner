@@ -1,0 +1,150 @@
+<style>
+  /* style.css file*/
+
+/* style.css file */
+
+.section {
+    background-color: transparent;
+    padding: 3vw 2vw;
+    border-radius: 0.25em;
+    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+}
+
+#my-qr-reader {
+    padding: 2vw;
+    background-color: white;
+    width: 90%;
+    max-width: 400px;
+    border: 1.5px solid #b2b2b2;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+#my-qr-reader img[alt="Info icon"] {
+    display: none;
+}
+
+#my-qr-reader img[alt="Camera based scan"] {
+    width: 80px;
+    height: 80px;
+}
+
+button {
+    padding: 10px 5%;
+    border: 1px solid #b2b2b2;
+    outline: none;
+    border-radius: 0.25em;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    background-color: #008000ad;
+    transition: 0.3s background-color;
+}
+
+button:hover {
+    background-color: #008000;
+}
+
+#html5-qrcode-anchor-scan-type-change {
+    text-decoration: none;
+    color: #1d9bf0;
+    font-size: 0.9rem;
+}
+
+video {
+    width: 100%;
+    border: 1px solid #b2b2b2;
+    border-radius: 0.25em;
+}
+
+@media screen and (max-width: 768px) {
+    .section {
+        padding: 5vw 3vw;
+    }
+
+    #my-qr-reader {
+        width: 95%;
+    }
+
+    button {
+        font-size: 0.9rem;
+        padding: 8px 4%;
+    }
+
+    #my-qr-reader img[alt="Camera based scan"] {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    button {
+        font-size: 0.8rem;
+        padding: 8px 3%;
+    }
+
+    #my-qr-reader img[alt="Camera based scan"] {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+</style>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet"
+          href="style.css">
+   
+</head>
+
+<body>
+    
+    <div class="container1">
+       
+       
+        <div class="section">
+            <div id="my-qr-reader">
+            </div>
+        </div>
+    </div>
+    <script
+        src="https://unpkg.com/html5-qrcode">
+    </script>
+    <script src="script.js"></script>
+</body>
+<script>
+  function domReady(fn) {
+    if (
+        document.readyState === "complete" ||
+        document.readyState === "interactive"
+    ) {
+        setTimeout(fn, 1000);
+    } else {
+        document.addEventListener("DOMContentLoaded", fn);
+    }
+}
+
+domReady(function () {
+    
+    function onScanSuccess(decodeText, decodeResult) {
+        scanned(decodeText);
+    }
+
+    let htmlscanner = new Html5QrcodeScanner(
+        "my-qr-reader",
+        { fps: 10, qrbox: 250 }
+    );
+    htmlscanner.render(onScanSuccess);
+}); 
+</script>
+</html>
