@@ -3,606 +3,994 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scanner</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <title>Attendance Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg: #0a0a0f;
-            --surface: #13131a;
-            --surface2: #1c1c26;
-            --accent: #7c5cfc;
-            --accent2: #c084fc;
-            --success: #22d3a5;
-            --success2: #4ade80;
-            --text: #f0eeff;
-            --muted: #8b8aaa;
-            --border: rgba(124, 92, 252, 0.2);
+            --bg: #f5f3ef;
+            --card: #ffffff;
+            --surface: #f0ece4;
+            --ink: #1a1814;
+            --ink2: #4a4640;
+            --muted: #9e9990;
+            --accent: #d4541a;
+            --accent2: #e8752a;
+            --success: #1a8a4a;
+            --success-bg: #edf7f1;
+            --warn: #c4520a;
+            --border: #e2ddd6;
+            --shadow: rgba(26,24,20,0.08);
         }
 
         body {
             background: var(--bg);
-            font-family: 'DM Sans', sans-serif;
-            color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--ink);
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        /* Ambient background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -30%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .app {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-        }
-
-        /* ── SCANNER VIEW ── */
-        #scanner-view {
-            transition: opacity 0.4s ease, transform 0.4s ease;
-        }
-
-        #scanner-view.hidden {
-            opacity: 0;
-            transform: scale(0.95);
-            pointer-events: none;
-            position: absolute;
-            top: 0; left: 0; right: 0;
-        }
-
-        .scanner-header {
-            text-align: center;
-            margin-bottom: 28px;
-        }
-
-        .scanner-header h1 {
-            font-family: 'Syne', sans-serif;
-            font-size: 1.6rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, var(--text), var(--accent2));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .scanner-header p {
-            color: var(--muted);
-            font-size: 0.85rem;
-            margin-top: 4px;
-            font-weight: 300;
-        }
-
-        .scanner-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Corner accents */
-        .scanner-box::before, .scanner-box::after {
-            content: '';
-            position: absolute;
-            width: 40px; height: 40px;
-            border-color: var(--accent);
-            border-style: solid;
-            z-index: 2;
-        }
-        .scanner-box::before { top: 12px; left: 12px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
-        .scanner-box::after  { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
-
-        #my-qr-reader {
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        /* Override html5-qrcode default styles */
-        #my-qr-reader img[alt="Info icon"] { display: none !important; }
-        #my-qr-reader > div:first-child { border-radius: 12px; overflow: hidden; }
-        #my-qr-reader video { border-radius: 10px; border: none !important; display: block; }
-        #my-qr-reader select, #my-qr-reader button {
-            background: var(--surface2) !important;
-            color: var(--text) !important;
-            border: 1px solid var(--border) !important;
-            border-radius: 8px !important;
-            font-family: 'DM Sans', sans-serif !important;
-            font-size: 0.85rem !important;
-            padding: 8px 14px !important;
-            margin-top: 12px !important;
-            cursor: pointer !important;
-            transition: background 0.2s !important;
-        }
-        #my-qr-reader button:hover { background: var(--surface) !important; }
-        #html5-qrcode-anchor-scan-type-change {
-            color: var(--accent2) !important;
-            text-decoration: none !important;
-            font-size: 0.82rem !important;
-        }
-
-        /* Scan line animation */
-        .scan-line {
-            position: absolute;
-            left: 20px; right: 20px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
-            border-radius: 2px;
-            animation: scanLine 2.4s ease-in-out infinite;
-            z-index: 3;
-            top: 20px;
-            box-shadow: 0 0 8px var(--accent);
-        }
-
-        @keyframes scanLine {
-            0%   { top: 20px; opacity: 0; }
-            10%  { opacity: 1; }
-            90%  { opacity: 1; }
-            100% { top: calc(100% - 20px); opacity: 0; }
-        }
-
-        /* ── SUCCESS VIEW ── */
-        #success-view {
-            display: none;
             flex-direction: column;
             align-items: center;
+            padding: 0 0 40px;
         }
 
-        #success-view.visible {
+        /* Top bar */
+        .topbar {
+            width: 100%;
+            background: var(--ink);
+            padding: 14px 24px;
             display: flex;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
-        @keyframes popIn {
-            from { opacity: 0; transform: scale(0.85) translateY(20px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        /* QR "flash" overlay */
-        .qr-flash {
-            position: fixed;
-            inset: 0;
-            background: white;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            animation: flash 0.5s ease-out forwards;
-        }
-
-        @keyframes flash {
-            0%   { opacity: 0.7; }
-            100% { opacity: 0; }
-        }
-
-        /* Success card */
-        .success-card {
-            background: var(--surface);
-            border: 1px solid rgba(34, 211, 165, 0.3);
-            border-radius: 24px;
-            padding: 36px 28px;
-            width: 100%;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .success-card::before {
-            content: '';
-            position: absolute;
-            top: -60px; left: 50%;
-            transform: translateX(-50%);
-            width: 200px; height: 200px;
-            background: radial-gradient(circle, rgba(34,211,165,0.15) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        /* Checkmark circle */
-        .check-wrap {
-            position: relative;
-            width: 80px; height: 80px;
-            margin: 0 auto 24px;
-        }
-
-        .check-ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 2.5px solid var(--success);
-            animation: ringPulse 1.5s ease-out infinite;
-        }
-
-        @keyframes ringPulse {
-            0%   { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.6); opacity: 0; }
-        }
-
-        .check-circle {
-            width: 80px; height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--success), var(--success2));
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 30px rgba(34,211,165,0.4);
-            position: relative;
-            z-index: 1;
-            animation: circlePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
-        }
-
-        @keyframes circlePop {
-            from { transform: scale(0); }
-            to   { transform: scale(1); }
-        }
-
-        .check-icon {
-            stroke: #0a0a0f;
-            stroke-width: 3;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            fill: none;
-            stroke-dasharray: 24;
-            stroke-dashoffset: 24;
-            animation: drawCheck 0.35s ease 0.45s forwards;
-        }
-
-        @keyframes drawCheck {
-            to { stroke-dashoffset: 0; }
-        }
-
-        .success-title {
-            font-family: 'Syne', sans-serif;
-            font-size: 1.5rem;
+        .topbar-logo {
+            font-size: 0.95rem;
             font-weight: 700;
-            color: var(--success);
-            margin-bottom: 6px;
-            animation: fadeUp 0.4s ease 0.5s both;
+            color: #fff;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .success-sub {
-            color: var(--muted);
-            font-size: 0.82rem;
-            margin-bottom: 28px;
-            animation: fadeUp 0.4s ease 0.6s both;
+        .topbar-logo::before {
+            content: '';
+            width: 8px; height: 8px;
+            background: var(--accent2);
+            border-radius: 50%;
+            display: inline-block;
         }
 
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
+        .topbar-right {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.45);
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        /* QR Data card */
-        .qr-data-card {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 18px;
+        .main {
             width: 100%;
-            margin-bottom: 20px;
-            animation: fadeUp 0.4s ease 0.7s both;
+            max-width: 460px;
+            padding: 28px 20px 0;
         }
 
-        .qr-data-label {
-            font-size: 0.72rem;
+        /* ── Session Config Card ── */
+        .config-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px var(--shadow);
+        }
+
+        .config-label {
+            font-size: 0.7rem;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--muted);
-            margin-bottom: 8px;
+            margin-bottom: 14px;
         }
 
-        .qr-data-value {
+        .config-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--ink2);
+        }
+
+        .field input[type="date"],
+        .field select {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.88rem;
+            color: var(--ink);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        .field input[type="date"]:focus,
+        .field select:focus {
+            border-color: var(--accent);
+        }
+
+        .session-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding: 6px 12px;
+            background: rgba(212,84,26,0.08);
+            border: 1px solid rgba(212,84,26,0.2);
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .session-dot {
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: blink 1.4s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        /* ── Scanner Card ── */
+        .scanner-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .scanner-card-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .scanner-card-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--ink2);
+        }
+
+        .scanner-status {
+            font-size: 0.72rem;
+            color: var(--success);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .scanner-status::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        .scanner-body {
+            padding: 16px;
+            position: relative;
+        }
+
+        #my-qr-reader {
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Override html5-qrcode */
+        #my-qr-reader img[alt="Info icon"] { display: none !important; }
+        #my-qr-reader video { border-radius: 8px !important; border: none !important; display: block; }
+        #my-qr-reader > div { border-radius: 10px !important; }
+        #my-qr-reader select, #my-qr-reader button {
+            background: var(--surface) !important;
+            color: var(--ink) !important;
+            border: 1.5px solid var(--border) !important;
+            border-radius: 8px !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-size: 0.82rem !important;
+            padding: 8px 14px !important;
+            margin-top: 10px !important;
+            cursor: pointer !important;
+        }
+        #html5-qrcode-anchor-scan-type-change {
+            color: var(--accent) !important;
+            font-size: 0.8rem !important;
+            text-decoration: none !important;
+        }
+
+        /* Corner brackets overlay */
+        .scan-overlay {
+            position: absolute;
+            top: 16px; left: 16px; right: 16px; bottom: 16px;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .corner {
+            position: absolute;
+            width: 22px; height: 22px;
+            border-color: var(--accent);
+            border-style: solid;
+        }
+        .corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
+        .corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 3px 0 0; }
+        .corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
+        .corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
+
+        .scan-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: scanDown 2s ease-in-out infinite;
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        @keyframes scanDown {
+            0%   { top: 0; opacity: 0; }
+            5%   { opacity: 1; }
+            95%  { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* ── Flash ── */
+        .flash {
+            position: fixed; inset: 0;
+            background: #fff;
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+            animation: doFlash 0.45s ease-out forwards;
+        }
+
+        @keyframes doFlash { 0% { opacity: 0.75; } 100% { opacity: 0; } }
+
+        /* ── Result View ── */
+        #result-view {
+            display: none;
+        }
+
+        #result-view.show {
+            display: block;
+            animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Student card */
+        .student-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px var(--shadow);
+            margin-bottom: 14px;
+        }
+
+        .student-card-top {
+            background: var(--ink);
+            padding: 20px 20px 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .avatar {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+            flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .student-name-block { flex: 1; min-width: 0; }
+
+        .student-name {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .student-roll {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.45);
+            margin-top: 2px;
+        }
+
+        .qr-badge {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .student-details {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .detail-key {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .detail-val {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--ink);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Session summary strip */
+        .session-strip {
+            background: rgba(212,84,26,0.06);
+            border: 1px solid rgba(212,84,26,0.15);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .session-strip-left { font-size: 0.8rem; font-weight: 600; color: var(--ink2); }
+        .session-strip-right {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Mark attendance button */
+        .mark-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--ink);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 1rem;
-            font-weight: 500;
-            color: var(--text);
-            word-break: break-all;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.01em;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .mark-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .mark-btn:hover::before { opacity: 1; }
+        .mark-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,84,26,0.3); }
+        .mark-btn:active { transform: scale(0.98); }
+
+        .mark-btn span { position: relative; z-index: 1; }
+
+        .mark-btn-icon {
+            width: 22px; height: 22px;
+            position: relative; z-index: 1;
+            flex-shrink: 0;
+        }
+
+        .scan-again-btn {
+            width: 100%;
+            padding: 13px;
+            background: transparent;
+            color: var(--ink2);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .scan-again-btn:hover {
+            background: var(--surface);
+            border-color: var(--ink2);
+        }
+
+        /* ── Success Alert Modal ── */
+        .modal-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(26,24,20,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 300;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0 0 0;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+            animation: bdIn 0.25s ease forwards;
+        }
+
+        @keyframes bdIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal {
+            background: var(--card);
+            border-radius: 24px 24px 0 0;
+            padding: 32px 24px 40px;
+            width: 100%;
+            max-width: 460px;
+            animation: sheetUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes sheetUp {
+            from { transform: translateY(100%); }
+            to   { transform: translateY(0); }
+        }
+
+        .modal-handle {
+            width: 36px; height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 auto 24px;
+        }
+
+        .modal-icon-wrap {
+            width: 72px; height: 72px;
+            background: var(--success-bg);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .modal-icon-wrap::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 2px solid var(--success);
+            opacity: 0;
+            animation: iconRing 1.2s ease-out 0.3s forwards;
+        }
+
+        @keyframes iconRing {
+            0%   { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+
+        .modal-icon-svg {
+            stroke: var(--success);
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            stroke-dasharray: 30;
+            stroke-dashoffset: 30;
+            animation: checkDraw 0.4s ease 0.15s forwards;
+        }
+
+        @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            text-align: center;
+            color: var(--ink);
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
+        }
+
+        .modal-subtitle {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 24px;
             line-height: 1.5;
         }
 
-        /* QR mini visual */
-        .qr-mini {
-            width: 56px; height: 56px;
-            background: white;
-            border-radius: 8px;
-            padding: 5px;
-            margin: 0 auto 20px;
-            animation: fadeUp 0.4s ease 0.65s both;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .qr-mini svg { width: 100%; height: 100%; }
-
-        /* Detected chips row */
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-            margin-bottom: 24px;
-            animation: fadeUp 0.4s ease 0.75s both;
-        }
-
-        .chip {
-            padding: 4px 10px;
-            background: rgba(124,92,252,0.15);
-            border: 1px solid rgba(124,92,252,0.3);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: var(--accent2);
-        }
-
-        /* Action buttons */
-        .action-row {
+        .modal-info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .modal-info-cell {
+            background: var(--surface);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .modal-info-key {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .modal-info-val {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--ink);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .modal-close {
             width: 100%;
-            animation: fadeUp 0.4s ease 0.85s both;
-        }
-
-        .btn {
-            padding: 12px;
-            border-radius: 12px;
+            padding: 14px;
+            background: var(--success);
+            color: #fff;
             border: none;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.88rem;
-            font-weight: 500;
+            border-radius: 12px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s;
+            transition: opacity 0.2s;
         }
 
-        .btn:hover { transform: translateY(-1px); }
-        .btn:active { transform: scale(0.97); }
+        .modal-close:hover { opacity: 0.9; }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            color: white;
-            box-shadow: 0 4px 20px rgba(124,92,252,0.35);
+        /* Error state */
+        .error-card {
+            background: #fff5f0;
+            border: 1px solid rgba(212,84,26,0.25);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            font-size: 0.85rem;
+            color: var(--warn);
+            font-weight: 500;
+            display: none;
         }
 
-        .btn-secondary {
-            background: var(--surface2);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
+        .error-card.show { display: block; }
 
         /* Particles */
-        .particle-canvas {
-            position: fixed;
-            inset: 0;
+        #particles {
+            position: fixed; inset: 0;
             pointer-events: none;
-            z-index: 50;
+            z-index: 250;
         }
 
-        /* Timestamp */
-        .timestamp {
-            font-size: 0.75rem;
-            color: var(--muted);
-            margin-top: 16px;
-            animation: fadeUp 0.4s ease 0.9s both;
+        @media (max-width: 480px) {
+            .topbar { padding: 12px 16px; }
+            .main { padding: 20px 14px 0; }
         }
     </style>
 </head>
 <body>
-    <canvas class="particle-canvas" id="particles"></canvas>
 
-    <div class="app">
+    <canvas id="particles"></canvas>
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+        <div class="topbar-logo">Attendance Scanner</div>
+        <div class="topbar-right" id="clock">--:--</div>
+    </div>
+
+    <div class="main">
+
+        <!-- SESSION CONFIG -->
+        <div class="config-card">
+            <div class="config-label">Session Configuration</div>
+            <div class="config-row">
+                <div class="field">
+                    <label>Date</label>
+                    <input type="date" id="att-date">
+                </div>
+                <div class="field">
+                    <label>Session</label>
+                    <select id="att-session">
+                        <option value="Morning">🌅 Morning</option>
+                        <option value="Afternoon">☀️ Afternoon</option>
+                        <option value="Evening">🌆 Evening</option>
+                    </select>
+                </div>
+            </div>
+            <div class="session-tag">
+                <span class="session-dot"></span>
+                <span id="active-session-label">Today · Morning</span>
+            </div>
+        </div>
 
         <!-- SCANNER -->
-        <div id="scanner-view">
-            <div class="scanner-header">
-                <h1>QR Scanner</h1>
-                <p>Point your camera at any QR code</p>
+        <div class="scanner-card" id="scanner-section">
+            <div class="scanner-card-header">
+                <div class="scanner-card-title">Scan Student QR</div>
+                <div class="scanner-status">Camera Active</div>
             </div>
-            <div class="scanner-box">
-                <div class="scan-line" id="scan-line"></div>
+            <div class="scanner-body">
+                <div class="scan-overlay">
+                    <div class="corner tl"></div>
+                    <div class="corner tr"></div>
+                    <div class="corner bl"></div>
+                    <div class="corner br"></div>
+                    <div class="scan-line"></div>
+                </div>
                 <div id="my-qr-reader"></div>
             </div>
         </div>
 
-        <!-- SUCCESS -->
-        <div id="success-view">
-            <div class="success-card">
-                <div class="check-wrap">
-                    <div class="check-ring"></div>
-                    <div class="check-circle">
-                        <svg width="32" height="32" viewBox="0 0 32 32">
-                            <polyline class="check-icon" points="6,16 13,23 26,9"/>
-                        </svg>
+        <!-- ERROR -->
+        <div class="error-card" id="error-card">
+            ⚠️ <span id="error-msg">Invalid QR code — expected student data.</span>
+        </div>
+
+        <!-- RESULT VIEW -->
+        <div id="result-view">
+
+            <div class="session-strip">
+                <div class="session-strip-left">Active Session</div>
+                <div class="session-strip-right" id="res-session-label">—</div>
+            </div>
+
+            <div class="student-card">
+                <div class="student-card-top">
+                    <div class="avatar" id="res-avatar">?</div>
+                    <div class="student-name-block">
+                        <div class="student-name" id="res-name">—</div>
+                        <div class="student-roll" id="res-roll">ROLL: —</div>
+                    </div>
+                    <div class="qr-badge">QR ✓</div>
+                </div>
+                <div class="student-details">
+                    <div class="detail-row">
+                        <span class="detail-key">Roll No.</span>
+                        <span class="detail-val" id="res-roll2">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-key">Phone</span>
+                        <span class="detail-val" id="res-phone">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-key">Scanned At</span>
+                        <span class="detail-val" id="res-time">—</span>
                     </div>
                 </div>
-
-                <div class="success-title">Scan Successful</div>
-                <div class="success-sub" id="success-time">Just now</div>
-
-                <div class="qr-mini" id="qr-mini-icon">
-                    <svg viewBox="0 0 21 21" fill="#000">
-                        <rect x="1" y="1" width="8" height="8"/><rect x="12" y="1" width="8" height="8"/>
-                        <rect x="1" y="12" width="8" height="8"/><rect x="12" y="14" width="3" height="3"/>
-                        <rect x="17" y="14" width="3" height="3"/><rect x="12" y="12" width="3" height="1"/>
-                        <rect x="16" y="12" width="5" height="1"/><rect x="14" y="17" width="6" height="3"/>
-                        <rect x="3" y="3" width="4" height="4" fill="#fff"/><rect x="14" y="3" width="4" height="4" fill="#fff"/>
-                        <rect x="3" y="14" width="4" height="4" fill="#fff"/>
-                    </svg>
-                </div>
-
-                <div class="qr-data-card">
-                    <div class="qr-data-label">Scanned Content</div>
-                    <div class="qr-data-value" id="scanned-text">—</div>
-                </div>
-
-                <div class="chips" id="chips-row"></div>
-
-                <div class="action-row">
-                    <button class="btn btn-primary" id="copy-btn" onclick="copyResult()">Copy</button>
-                    <button class="btn btn-secondary" onclick="resetScanner()">Scan Again</button>
-                </div>
-
-                <div class="timestamp" id="ts"></div>
             </div>
+
+            <button class="mark-btn" id="mark-btn" onclick="markAttendance()">
+                <svg class="mark-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>
+                </svg>
+                <span>Mark Attendance</span>
+            </button>
+
+            <button class="scan-again-btn" onclick="resetScanner()">← Scan Another Student</button>
+
         </div>
 
     </div>
 
+    <!-- SUCCESS MODAL -->
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <div class="modal-icon-wrap">
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                    <polyline class="modal-icon-svg" points="7,18 14,25 29,11"/>
+                </svg>
+            </div>
+            <div class="modal-title">Attendance Marked!</div>
+            <div class="modal-subtitle" id="modal-subtitle">Student has been marked present for this session.</div>
+            <div class="modal-info-grid">
+                <div class="modal-info-cell">
+                    <div class="modal-info-key">Student</div>
+                    <div class="modal-info-val" id="modal-name">—</div>
+                </div>
+                <div class="modal-info-cell">
+                    <div class="modal-info-key">Roll No.</div>
+                    <div class="modal-info-val" id="modal-roll">—</div>
+                </div>
+                <div class="modal-info-cell">
+                    <div class="modal-info-key">Date</div>
+                    <div class="modal-info-val" id="modal-date">—</div>
+                </div>
+                <div class="modal-info-cell">
+                    <div class="modal-info-key">Session</div>
+                    <div class="modal-info-val" id="modal-session">—</div>
+                </div>
+            </div>
+            <button class="modal-close" onclick="afterMark()">Done · Scan Next</button>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-        let htmlscanner = null;
+        let scanner = null;
         let scanned = false;
+        let currentStudentData = null;
 
-        // ── Particle burst ──────────────────────────────────────────────
-        function burstParticles() {
+        // ── Clock ───────────────────────────────────────────────────────
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent =
+                now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ── Set today's date default ─────────────────────────────────────
+        const dateInput = document.getElementById('att-date');
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+
+        // ── Session label updater ────────────────────────────────────────
+        function updateSessionLabel() {
+            const d = dateInput.value;
+            const s = document.getElementById('att-session').value;
+            const label = d === today ? `Today · ${s}` : `${formatDate(d)} · ${s}`;
+            document.getElementById('active-session-label').textContent = label;
+        }
+
+        dateInput.addEventListener('change', updateSessionLabel);
+        document.getElementById('att-session').addEventListener('change', updateSessionLabel);
+        updateSessionLabel();
+
+        function formatDate(iso) {
+            const [y, m, d] = iso.split('-');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return `${d} ${months[+m - 1]}`;
+        }
+
+        // ── Particles ────────────────────────────────────────────────────
+        function burst() {
             const canvas = document.getElementById('particles');
             const ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-
-            const cx = canvas.width / 2, cy = canvas.height / 2;
-            const colors = ['#7c5cfc','#c084fc','#22d3a5','#4ade80','#f0eeff'];
-            const particles = Array.from({length: 60}, () => ({
+            const cx = canvas.width / 2, cy = canvas.height * 0.45;
+            const cols = ['#d4541a','#e8752a','#1a8a4a','#22d3a5','#1a1814','#f5a623'];
+            const pts = Array.from({ length: 50 }, () => ({
                 x: cx, y: cy,
-                vx: (Math.random() - 0.5) * 14,
-                vy: (Math.random() - 0.9) * 14,
-                r: Math.random() * 5 + 2,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                alpha: 1,
-                gravity: 0.35
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.85) * 13,
+                r: Math.random() * 4 + 2,
+                col: cols[Math.floor(Math.random() * cols.length)],
+                a: 1, g: 0.4
             }));
-
-            let frame;
-            function draw() {
+            (function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 let alive = false;
-                particles.forEach(p => {
-                    if (p.alpha <= 0) return;
+                pts.forEach(p => {
+                    if (p.a <= 0) return;
                     alive = true;
-                    p.x += p.vx; p.y += p.vy;
-                    p.vy += p.gravity;
-                    p.alpha -= 0.022;
-                    ctx.globalAlpha = Math.max(0, p.alpha);
-                    ctx.fillStyle = p.color;
+                    p.x += p.vx; p.y += p.vy; p.vy += p.g; p.a -= 0.02;
+                    ctx.globalAlpha = Math.max(0, p.a);
+                    ctx.fillStyle = p.col;
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
                     ctx.fill();
                 });
                 ctx.globalAlpha = 1;
-                if (alive) frame = requestAnimationFrame(draw);
+                if (alive) requestAnimationFrame(draw);
                 else ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-            draw();
+            })();
         }
 
-        // ── Detect what kind of content ─────────────────────────────────
-        function detectChips(text) {
-            const chips = [];
-            if (/^https?:\/\//i.test(text)) chips.push('🔗 URL');
-            if (/^upi:\/\//i.test(text) || /pa=/.test(text)) chips.push('💸 UPI Payment');
-            if (/^\+?[0-9\s\-]{7,}$/.test(text.trim())) chips.push('📞 Phone Number');
-            if (/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(text.trim())) chips.push('✉️ Email');
-            if (/^BEGIN:VCARD/i.test(text)) chips.push('👤 Contact Card');
-            if (/^WIFI:/i.test(text)) chips.push('📶 Wi-Fi');
-            if (chips.length === 0) chips.push('📄 Text');
-            return chips;
+        // ── Parse QR ─────────────────────────────────────────────────────
+        function parseQR(text) {
+            try {
+                const data = JSON.parse(text);
+                // Accept if it has at least name or roll_number
+                if (data.name || data.roll_number || data.rollNumber || data.roll) {
+                    return {
+                        name: data.name || data.student_name || 'Unknown',
+                        roll: data.roll_number || data.rollNumber || data.roll || 'N/A',
+                        phone: data.phone || data.phone_number || data.mobile || 'N/A',
+                        raw: data
+                    };
+                }
+            } catch (e) {}
+            return null;
         }
 
-        // ── Show success view ────────────────────────────────────────────
-        function showSuccess(text) {
+        // ── On scan ─────────────────────────────────────────────────────
+        function onScan(text) {
             if (scanned) return;
             scanned = true;
 
-            // Stop scanner
-            if (htmlscanner) {
-                htmlscanner.pause(true);
-                setTimeout(() => htmlscanner.clear().catch(() => {}), 500);
-            }
-
             // Flash
             const flash = document.createElement('div');
-            flash.className = 'qr-flash';
+            flash.className = 'flash';
             document.body.appendChild(flash);
-            setTimeout(() => flash.remove(), 600);
+            setTimeout(() => flash.remove(), 500);
 
-            // Hide scanner
-            const sv = document.getElementById('scanner-view');
-            sv.classList.add('hidden');
+            const student = parseQR(text);
 
-            // Populate
-            document.getElementById('scanned-text').textContent = text;
+            if (!student) {
+                // Show error, allow retry
+                document.getElementById('error-msg').textContent =
+                    'Invalid QR — expected JSON with name/roll_number fields.';
+                document.getElementById('error-card').classList.add('show');
+                scanned = false;
+                return;
+            }
 
-            const now = new Date();
-            document.getElementById('success-time').textContent =
-                now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            document.getElementById('ts').textContent =
-                `Scanned on ${now.toLocaleDateString([], {day:'numeric',month:'short',year:'numeric'})}`;
+            document.getElementById('error-card').classList.remove('show');
+            currentStudentData = student;
 
-            const chips = detectChips(text);
-            const chipsRow = document.getElementById('chips-row');
-            chipsRow.innerHTML = chips.map(c => `<span class="chip">${c}</span>`).join('');
+            // Populate result view
+            const initials = student.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            document.getElementById('res-avatar').textContent = initials;
+            document.getElementById('res-name').textContent = student.name;
+            document.getElementById('res-roll').textContent = `ROLL: ${student.roll}`;
+            document.getElementById('res-roll2').textContent = student.roll;
+            document.getElementById('res-phone').textContent = student.phone;
+            document.getElementById('res-time').textContent =
+                new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-            // Show
-            const succ = document.getElementById('success-view');
-            succ.classList.add('visible');
+            const sessLabel = `${formatDate(dateInput.value)} · ${document.getElementById('att-session').value}`;
+            document.getElementById('res-session-label').textContent = sessLabel;
 
-            // Particles after short delay
-            setTimeout(burstParticles, 300);
+            // Hide scanner, show result
+            document.getElementById('scanner-section').style.display = 'none';
+            document.getElementById('result-view').classList.add('show');
+
+            if (scanner) scanner.pause(true);
         }
 
-        // ── Copy ─────────────────────────────────────────────────────────
-        function copyResult() {
-            const text = document.getElementById('scanned-text').textContent;
-            navigator.clipboard.writeText(text).catch(() => {});
-            const btn = document.getElementById('copy-btn');
-            btn.textContent = '✓ Copied';
-            btn.style.background = 'linear-gradient(135deg, #22d3a5, #4ade80)';
-            setTimeout(() => {
-                btn.textContent = 'Copy';
-                btn.style.background = '';
-            }, 2000);
+        // ── Mark Attendance ──────────────────────────────────────────────
+        function markAttendance() {
+            if (!currentStudentData) return;
+
+            const s = currentStudentData;
+            const date = dateInput.value;
+            const session = document.getElementById('att-session').value;
+
+            // Populate modal
+            document.getElementById('modal-name').textContent = s.name.split(' ')[0];
+            document.getElementById('modal-roll').textContent = s.roll;
+            document.getElementById('modal-date').textContent = formatDate(date);
+            document.getElementById('modal-session').textContent = session;
+            document.getElementById('modal-subtitle').textContent =
+                `${s.name} marked present for ${session} session.`;
+
+            // ── YOUR BACKEND HOOK ────────────────────────────────────────
+            // Replace this section with your actual API call:
+            //
+            // const payload = {
+            //     name: s.name,
+            //     roll_number: s.roll,
+            //     phone: s.phone,
+            //     date: date,
+            //     session: session,
+            //     marked_at: new Date().toISOString()
+            // };
+            // fetch('/api/attendance', { method: 'POST', body: JSON.stringify(payload), ... })
+            //
+            console.log('ATTENDANCE PAYLOAD:', {
+                name: s.name, roll_number: s.roll,
+                phone: s.phone, date, session,
+                marked_at: new Date().toISOString()
+            });
+            // ─────────────────────────────────────────────────────────────
+
+            // Open modal
+            document.getElementById('modal-backdrop').classList.add('open');
+            setTimeout(burst, 200);
         }
 
-        // ── Reset ─────────────────────────────────────────────────────────
+        // ── After mark / modal close ─────────────────────────────────────
+        function closeModal(e) {
+            if (e.target === document.getElementById('modal-backdrop')) afterMark();
+        }
+
+        function afterMark() {
+            document.getElementById('modal-backdrop').classList.remove('open');
+            resetScanner();
+        }
+
+        // ── Reset ────────────────────────────────────────────────────────
         function resetScanner() {
             scanned = false;
-            document.getElementById('success-view').classList.remove('visible');
-            document.getElementById('success-view').style.display = 'none';
-
-            const sv = document.getElementById('scanner-view');
-            sv.classList.remove('hidden');
-            sv.style.opacity = '1'; sv.style.transform = '';
-
+            currentStudentData = null;
+            document.getElementById('result-view').classList.remove('show');
+            document.getElementById('scanner-section').style.display = 'block';
             document.getElementById('my-qr-reader').innerHTML = '';
-
-            setTimeout(() => {
-                document.getElementById('success-view').style.display = '';
-                initScanner();
-            }, 50);
+            setTimeout(initScanner, 80);
         }
 
         // ── Init scanner ─────────────────────────────────────────────────
         function initScanner() {
-            htmlscanner = new Html5QrcodeScanner(
-                "my-qr-reader",
-                { fps: 10, qrbox: { width: 240, height: 240 }, rememberLastUsedCamera: true }
+            scanner = new Html5QrcodeScanner(
+                'my-qr-reader',
+                { fps: 10, qrbox: { width: 230, height: 230 }, rememberLastUsedCamera: true }
             );
-            htmlscanner.render(
-                (text) => showSuccess(text),
-                (err) => {}
-            );
+            scanner.render(onScan, () => {});
         }
 
-        // Boot
         document.addEventListener('DOMContentLoaded', () => setTimeout(initScanner, 300));
     </script>
 </body>
