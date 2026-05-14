@@ -1,151 +1,609 @@
-<style>
-  /* style.css file*/
-
-/* style.css file */
-
-.section {
-    background-color: transparent;
-    padding: 3vw 2vw;
-    border-radius: 0.25em;
-    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    width: 100%;
-}
-
-#my-qr-reader {
-    padding: 2vw;
-    background-color: white;
-    width: 90%;
-    max-width: 400px;
-    border: 1.5px solid #b2b2b2;
-    border-radius: 8px;
-    box-sizing: border-box;
-}
-
-#my-qr-reader img[alt="Info icon"] {
-    display: none;
-}
-
-#my-qr-reader img[alt="Camera based scan"] {
-    width: 80px;
-    height: 80px;
-}
-
-button {
-    padding: 10px 5%;
-    border: 1px solid #b2b2b2;
-    outline: none;
-    border-radius: 0.25em;
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    background-color: #008000ad;
-    transition: 0.3s background-color;
-}
-
-button:hover {
-    background-color: #008000;
-}
-
-#html5-qrcode-anchor-scan-type-change {
-    text-decoration: none;
-    color: #1d9bf0;
-    font-size: 0.9rem;
-}
-
-video {
-    width: 100%;
-    border: 1px solid #b2b2b2;
-    border-radius: 0.25em;
-}
-
-@media screen and (max-width: 768px) {
-    .section {
-        padding: 5vw 3vw;
-    }
-
-    #my-qr-reader {
-        width: 95%;
-    }
-
-    button {
-        font-size: 0.9rem;
-        padding: 8px 4%;
-    }
-
-    #my-qr-reader img[alt="Camera based scan"] {
-        width: 60px;
-        height: 60px;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    button {
-        font-size: 0.8rem;
-        padding: 8px 3%;
-    }
-
-    #my-qr-reader img[alt="Camera based scan"] {
-        width: 50px;
-        height: 50px;
-    }
-}
-
-</style>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet"
-          href="style.css">
-   
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --surface2: #1c1c26;
+            --accent: #7c5cfc;
+            --accent2: #c084fc;
+            --success: #22d3a5;
+            --success2: #4ade80;
+            --text: #f0eeff;
+            --muted: #8b8aaa;
+            --border: rgba(124, 92, 252, 0.2);
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        /* ── SCANNER VIEW ── */
+        #scanner-view {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        #scanner-view.hidden {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+        }
+
+        .scanner-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .scanner-header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--text), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .scanner-header p {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-top: 4px;
+            font-weight: 300;
+        }
+
+        .scanner-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Corner accents */
+        .scanner-box::before, .scanner-box::after {
+            content: '';
+            position: absolute;
+            width: 40px; height: 40px;
+            border-color: var(--accent);
+            border-style: solid;
+            z-index: 2;
+        }
+        .scanner-box::before { top: 12px; left: 12px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+        .scanner-box::after  { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+        #my-qr-reader {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Override html5-qrcode default styles */
+        #my-qr-reader img[alt="Info icon"] { display: none !important; }
+        #my-qr-reader > div:first-child { border-radius: 12px; overflow: hidden; }
+        #my-qr-reader video { border-radius: 10px; border: none !important; display: block; }
+        #my-qr-reader select, #my-qr-reader button {
+            background: var(--surface2) !important;
+            color: var(--text) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 8px !important;
+            font-family: 'DM Sans', sans-serif !important;
+            font-size: 0.85rem !important;
+            padding: 8px 14px !important;
+            margin-top: 12px !important;
+            cursor: pointer !important;
+            transition: background 0.2s !important;
+        }
+        #my-qr-reader button:hover { background: var(--surface) !important; }
+        #html5-qrcode-anchor-scan-type-change {
+            color: var(--accent2) !important;
+            text-decoration: none !important;
+            font-size: 0.82rem !important;
+        }
+
+        /* Scan line animation */
+        .scan-line {
+            position: absolute;
+            left: 20px; right: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
+            border-radius: 2px;
+            animation: scanLine 2.4s ease-in-out infinite;
+            z-index: 3;
+            top: 20px;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        @keyframes scanLine {
+            0%   { top: 20px; opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { top: calc(100% - 20px); opacity: 0; }
+        }
+
+        /* ── SUCCESS VIEW ── */
+        #success-view {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #success-view.visible {
+            display: flex;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.85) translateY(20px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* QR "flash" overlay */
+        .qr-flash {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            animation: flash 0.5s ease-out forwards;
+        }
+
+        @keyframes flash {
+            0%   { opacity: 0.7; }
+            100% { opacity: 0; }
+        }
+
+        /* Success card */
+        .success-card {
+            background: var(--surface);
+            border: 1px solid rgba(34, 211, 165, 0.3);
+            border-radius: 24px;
+            padding: 36px 28px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .success-card::before {
+            content: '';
+            position: absolute;
+            top: -60px; left: 50%;
+            transform: translateX(-50%);
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(34,211,165,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Checkmark circle */
+        .check-wrap {
+            position: relative;
+            width: 80px; height: 80px;
+            margin: 0 auto 24px;
+        }
+
+        .check-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2.5px solid var(--success);
+            animation: ringPulse 1.5s ease-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0%   { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        .check-circle {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--success), var(--success2));
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 30px rgba(34,211,165,0.4);
+            position: relative;
+            z-index: 1;
+            animation: circlePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+        }
+
+        @keyframes circlePop {
+            from { transform: scale(0); }
+            to   { transform: scale(1); }
+        }
+
+        .check-icon {
+            stroke: #0a0a0f;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            stroke-dasharray: 24;
+            stroke-dashoffset: 24;
+            animation: drawCheck 0.35s ease 0.45s forwards;
+        }
+
+        @keyframes drawCheck {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .success-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 6px;
+            animation: fadeUp 0.4s ease 0.5s both;
+        }
+
+        .success-sub {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-bottom: 28px;
+            animation: fadeUp 0.4s ease 0.6s both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* QR Data card */
+        .qr-data-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            width: 100%;
+            margin-bottom: 20px;
+            animation: fadeUp 0.4s ease 0.7s both;
+        }
+
+        .qr-data-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .qr-data-value {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text);
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        /* QR mini visual */
+        .qr-mini {
+            width: 56px; height: 56px;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+            margin: 0 auto 20px;
+            animation: fadeUp 0.4s ease 0.65s both;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .qr-mini svg { width: 100%; height: 100%; }
+
+        /* Detected chips row */
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 24px;
+            animation: fadeUp 0.4s ease 0.75s both;
+        }
+
+        .chip {
+            padding: 4px 10px;
+            background: rgba(124,92,252,0.15);
+            border: 1px solid rgba(124,92,252,0.3);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--accent2);
+        }
+
+        /* Action buttons */
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            animation: fadeUp 0.4s ease 0.85s both;
+        }
+
+        .btn {
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .btn:hover { transform: translateY(-1px); }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            box-shadow: 0 4px 20px rgba(124,92,252,0.35);
+        }
+
+        .btn-secondary {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* Particles */
+        .particle-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Timestamp */
+        .timestamp {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 16px;
+            animation: fadeUp 0.4s ease 0.9s both;
+        }
+    </style>
 </head>
-
 <body>
-    
-    <div class="container1">
-       
-       
-        <div class="section">
-            <div id="my-qr-reader">
+    <canvas class="particle-canvas" id="particles"></canvas>
+
+    <div class="app">
+
+        <!-- SCANNER -->
+        <div id="scanner-view">
+            <div class="scanner-header">
+                <h1>QR Scanner</h1>
+                <p>Point your camera at any QR code</p>
             </div>
-            <div id="qr-result" style="margin-top: 20px; font-size: 1.2rem; color: #333;"></div>
+            <div class="scanner-box">
+                <div class="scan-line" id="scan-line"></div>
+                <div id="my-qr-reader"></div>
+            </div>
         </div>
+
+        <!-- SUCCESS -->
+        <div id="success-view">
+            <div class="success-card">
+                <div class="check-wrap">
+                    <div class="check-ring"></div>
+                    <div class="check-circle">
+                        <svg width="32" height="32" viewBox="0 0 32 32">
+                            <polyline class="check-icon" points="6,16 13,23 26,9"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="success-title">Scan Successful</div>
+                <div class="success-sub" id="success-time">Just now</div>
+
+                <div class="qr-mini" id="qr-mini-icon">
+                    <svg viewBox="0 0 21 21" fill="#000">
+                        <rect x="1" y="1" width="8" height="8"/><rect x="12" y="1" width="8" height="8"/>
+                        <rect x="1" y="12" width="8" height="8"/><rect x="12" y="14" width="3" height="3"/>
+                        <rect x="17" y="14" width="3" height="3"/><rect x="12" y="12" width="3" height="1"/>
+                        <rect x="16" y="12" width="5" height="1"/><rect x="14" y="17" width="6" height="3"/>
+                        <rect x="3" y="3" width="4" height="4" fill="#fff"/><rect x="14" y="3" width="4" height="4" fill="#fff"/>
+                        <rect x="3" y="14" width="4" height="4" fill="#fff"/>
+                    </svg>
+                </div>
+
+                <div class="qr-data-card">
+                    <div class="qr-data-label">Scanned Content</div>
+                    <div class="qr-data-value" id="scanned-text">—</div>
+                </div>
+
+                <div class="chips" id="chips-row"></div>
+
+                <div class="action-row">
+                    <button class="btn btn-primary" id="copy-btn" onclick="copyResult()">Copy</button>
+                    <button class="btn btn-secondary" onclick="resetScanner()">Scan Again</button>
+                </div>
+
+                <div class="timestamp" id="ts"></div>
+            </div>
+        </div>
+
     </div>
-    <script
-        src="https://unpkg.com/html5-qrcode">
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        let htmlscanner = null;
+        let scanned = false;
+
+        // ── Particle burst ──────────────────────────────────────────────
+        function burstParticles() {
+            const canvas = document.getElementById('particles');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            const colors = ['#7c5cfc','#c084fc','#22d3a5','#4ade80','#f0eeff'];
+            const particles = Array.from({length: 60}, () => ({
+                x: cx, y: cy,
+                vx: (Math.random() - 0.5) * 14,
+                vy: (Math.random() - 0.9) * 14,
+                r: Math.random() * 5 + 2,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                alpha: 1,
+                gravity: 0.35
+            }));
+
+            let frame;
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                particles.forEach(p => {
+                    if (p.alpha <= 0) return;
+                    alive = true;
+                    p.x += p.vx; p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.alpha -= 0.022;
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1;
+                if (alive) frame = requestAnimationFrame(draw);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            draw();
+        }
+
+        // ── Detect what kind of content ─────────────────────────────────
+        function detectChips(text) {
+            const chips = [];
+            if (/^https?:\/\//i.test(text)) chips.push('🔗 URL');
+            if (/^upi:\/\//i.test(text) || /pa=/.test(text)) chips.push('💸 UPI Payment');
+            if (/^\+?[0-9\s\-]{7,}$/.test(text.trim())) chips.push('📞 Phone Number');
+            if (/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(text.trim())) chips.push('✉️ Email');
+            if (/^BEGIN:VCARD/i.test(text)) chips.push('👤 Contact Card');
+            if (/^WIFI:/i.test(text)) chips.push('📶 Wi-Fi');
+            if (chips.length === 0) chips.push('📄 Text');
+            return chips;
+        }
+
+        // ── Show success view ────────────────────────────────────────────
+        function showSuccess(text) {
+            if (scanned) return;
+            scanned = true;
+
+            // Stop scanner
+            if (htmlscanner) {
+                htmlscanner.pause(true);
+                setTimeout(() => htmlscanner.clear().catch(() => {}), 500);
+            }
+
+            // Flash
+            const flash = document.createElement('div');
+            flash.className = 'qr-flash';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 600);
+
+            // Hide scanner
+            const sv = document.getElementById('scanner-view');
+            sv.classList.add('hidden');
+
+            // Populate
+            document.getElementById('scanned-text').textContent = text;
+
+            const now = new Date();
+            document.getElementById('success-time').textContent =
+                now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            document.getElementById('ts').textContent =
+                `Scanned on ${now.toLocaleDateString([], {day:'numeric',month:'short',year:'numeric'})}`;
+
+            const chips = detectChips(text);
+            const chipsRow = document.getElementById('chips-row');
+            chipsRow.innerHTML = chips.map(c => `<span class="chip">${c}</span>`).join('');
+
+            // Show
+            const succ = document.getElementById('success-view');
+            succ.classList.add('visible');
+
+            // Particles after short delay
+            setTimeout(burstParticles, 300);
+        }
+
+        // ── Copy ─────────────────────────────────────────────────────────
+        function copyResult() {
+            const text = document.getElementById('scanned-text').textContent;
+            navigator.clipboard.writeText(text).catch(() => {});
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = '✓ Copied';
+            btn.style.background = 'linear-gradient(135deg, #22d3a5, #4ade80)';
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.style.background = '';
+            }, 2000);
+        }
+
+        // ── Reset ─────────────────────────────────────────────────────────
+        function resetScanner() {
+            scanned = false;
+            document.getElementById('success-view').classList.remove('visible');
+            document.getElementById('success-view').style.display = 'none';
+
+            const sv = document.getElementById('scanner-view');
+            sv.classList.remove('hidden');
+            sv.style.opacity = '1'; sv.style.transform = '';
+
+            document.getElementById('my-qr-reader').innerHTML = '';
+
+            setTimeout(() => {
+                document.getElementById('success-view').style.display = '';
+                initScanner();
+            }, 50);
+        }
+
+        // ── Init scanner ─────────────────────────────────────────────────
+        function initScanner() {
+            htmlscanner = new Html5QrcodeScanner(
+                "my-qr-reader",
+                { fps: 10, qrbox: { width: 240, height: 240 }, rememberLastUsedCamera: true }
+            );
+            htmlscanner.render(
+                (text) => showSuccess(text),
+                (err) => {}
+            );
+        }
+
+        // Boot
+        document.addEventListener('DOMContentLoaded', () => setTimeout(initScanner, 300));
     </script>
-    <script src="script.js"></script>
 </body>
-<script>
-  function domReady(fn) {
-    if (
-        document.readyState === "complete" ||
-        document.readyState === "interactive"
-    ) {
-        setTimeout(fn, 1000);
-    } else {
-        document.addEventListener("DOMContentLoaded", fn);
-    }
-}
-
-domReady(function () {
-    
-    function onScanSuccess(decodeText, decodeResult) {
-        document.getElementById('qr-result').innerText = `Scanned Number: ${decodeText}`;
-    }
-
-    let htmlscanner = new Html5QrcodeScanner(
-        "my-qr-reader",
-        { fps: 10, qrbox: 250 }
-    );
-    htmlscanner.render(onScanSuccess);
-}); 
-</script>
 </html>
