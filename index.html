@@ -115,6 +115,7 @@ video {
         <div class="section">
             <div id="my-qr-reader">
             </div>
+            <div id="qr-result" style="margin-top: 20px; font-size: 1.2rem; color: #333;"></div>
         </div>
     </div>
     <script
@@ -137,7 +138,7 @@ video {
 domReady(function () {
     
     function onScanSuccess(decodeText, decodeResult) {
-        scanned(decodeText);
+        document.getElementById('qr-result').innerText = `Scanned Number: ${decodeText}`;
     }
 
     let htmlscanner = new Html5QrcodeScanner(
